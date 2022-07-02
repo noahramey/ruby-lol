@@ -1,8 +1,15 @@
 module Lol
   # Bindings for the Summoner API.
   #
-  # See: https://developer.riotgames.com/api-methods/#summoner-v3
+  # See: https://developer.riotgames.com/api-methods/#summoner-v4
   class SummonerRequest < Request
+
+    # Return current API Version.
+    # @return [String] v4
+    def self.api_version
+      "v4"
+    end
+
     # @!visibility private
     def api_base_path
       "/lol/summoner/#{self.class.api_version}"
