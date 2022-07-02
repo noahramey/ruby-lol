@@ -15,7 +15,6 @@ module Lol
     # @return [String] api_key
     attr_reader :api_key
 
-
     # @!attribute [rw] region
     # @return [String] region
     attr_accessor :region
@@ -28,8 +27,12 @@ module Lol
     # @return [Object] the rate limiter, if one exists (else nil)
     attr_reader :rate_limiter
 
+    # @!attribute[r] alt_platform
+    # @return [Boolean] alt_platform
+    attr_reader :alt_platform
+
     # Returns the supported API Version.
-    # @return [String] v3
+    # @return [String] v4
     def self.api_version
       "v4"
     end
@@ -56,9 +59,10 @@ module Lol
     # @param cache_store [Hash]
     # @option cache_store [Redis] :redis Redis instance to use
     # @option cache_store [Boolean] :cached should the request be cached
-    # @option cacche_store [Integer] :ttl ttl for cache keys
+    # @option cache_store [Integer] :ttl ttl for cache keys
+    # @option alt_platform [Boolean] :alt_platform for some requests that use alternate routing api
     # @return [Request]
-    def initialize api_key, region, cache_store = {}, rate_limiter = nil
+    def initialize(api_key, region, cache_store = {}, rate_limiter = nil)
       @cache_store  = cache_store
       @rate_limiter = rate_limiter
       raise InvalidCacheStore if cached? && !store.is_a?(Redis)
@@ -79,7 +83,7 @@ module Lol
     # Returns a full url for an API call
     # @param path [String] API path to call
     # @return [String] full fledged url
-    def api_url path, params = {}
+    def api_url(path, params = {})
       url = File.join File.join(api_base_url, api_base_path), path
       "#{url}?#{api_query_string params}"
     end
@@ -96,7 +100,7 @@ module Lol
       "/lol/platform/#{api_version}"
     end
 
-    def api_query_string params = {}
+    def api_query_string(params = {})
       URI.encode_www_form params.merge api_key: api_key
     end
 
@@ -115,7 +119,7 @@ module Lol
     # @param body [Hash] Body for POST request
     # @param options [Hash] Options passed to HTTParty
     # @return [String] raw response of the call
-    def perform_request url, verb = :get, body = nil, options = {}
+    def perform_request(url, verb = :get, body = nil, options = {})
       options_id = options.inspect
       can_cache = [:post, :put].include?(verb) ? false : cached?
       if can_cache && result = store.get("#{clean_url(url)}#{options_id}")
@@ -126,14 +130,14 @@ module Lol
       response
     end
 
-    def perform_rate_limited_request url, verb = :get, body = nil, options = {}
+    def perform_rate_limited_request(url, verb = :get, body = nil, options = {})
       return perform_uncached_request(url, verb, body, options) unless rate_limiter
       @rate_limiter.times 1 do
         return perform_uncached_request(url, verb, body, options)
       end
     end
 
-    def perform_uncached_request url, verb = :get, body = nil, options = {}
+    def perform_uncached_request(url, verb = :get, body = nil, options = {})
       options[:headers] ||= {}
       options[:headers].merge!({
         "Content-Type" => "application/json",
