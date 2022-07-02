@@ -25,8 +25,15 @@ module Lol
     # Get the grandmaster league for a given queue
     # @param [String] queue Queue identifier. See the list of game constants (developer.riotgames.com/game-constants.html) for the available queue identifiers
     # @return [DynamicModel] Grandmaster league
-    def find_master(queue='RANKED_SOLO_5x5')
+    def find_grandmaster(queue='RANKED_SOLO_5x5')
       DynamicModel.new perform_request api_url "grandmasterleagues/by-queue/#{queue}"
+    end
+
+    # Get league with given ID, including inactive entries
+    # @param [String] league_id League ID.
+    # @return [DynamicModel] League
+    def find_league_by_id(league_id)
+      DynamicModel.new perform_request api_url "leagues/#{league_id}"
     end
 
     # Get all the league entries by queue, tier, and division
